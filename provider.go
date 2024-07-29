@@ -66,7 +66,7 @@ func (g *InstanceGroup) Init(ctx context.Context, log hclog.Logger, settings pro
 		return provider.ProviderInfo{}, fmt.Errorf("Failed to connect to OpenStack Nova: %w", err)
 	}
 
-	cli.Microversion = "2.79" // train+
+	cli.Microversion = "2.42" // ocata
 	g.computeClient = cli
 
 	_, err = g.ServerSpec.ToServerCreateMap()
