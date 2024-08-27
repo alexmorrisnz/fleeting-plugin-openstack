@@ -12,6 +12,7 @@ import (
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v2/volumes"
 	"github.com/gophercloud/gophercloud/v2/openstack/config"
 	clouds "github.com/gophercloud/gophercloud/v2/openstack/config/clouds"
 	osutil "github.com/gophercloud/gophercloud/v2/openstack/utils"
@@ -37,6 +38,7 @@ type InstanceGroup struct {
 	BootTime         time.Duration
 
 	computeClient   *gophercloud.ServiceClient
+	blockStorageClient *gophercloud.ServiceClient
 	settings        provider.Settings
 	log             hclog.Logger
 	imgProps        *ImageProperties
@@ -78,6 +80,12 @@ func (g *InstanceGroup) Init(ctx context.Context, log hclog.Logger, settings pro
 	}
 
 	g.computeClient = &ncli
+
+	bsc, err := openstack.NewBlockStorageV3(pc, eo)
+	if err != nil {
+		return provider.ProviderInfo{}, fmt.Errorf("Failed to connect to OpenStack Cinder: %w", err)
+	}
+	g.blockStorageClient = bsc
 
 	_, err = g.ServerSpec.ToServerCreateMap()
 	if err != nil {
@@ -278,6 +286,41 @@ func (g *InstanceGroup) createInstance(ctx context.Context) (string, error) {
 		if err != nil {
 			return "", err
 		}
+	}
+
+	volumeOpts := volumes.CreateOpts{
+		Name: spec.Name,
+		Size: 15,
+		VolumeType: "b1.sr-r3-nvme-1000",
+		ImageID: spec.ImageRef,
+	}
+	volume, err := volumes.Create(ctx, g.blockStorageClient, volumeOpts, nil).Extract()
+	if err != nil {
+		panic(err)
+	}
+
+	for {
+		volume, err = volumes.Get(ctx, g.blockStorageClient, volume.ID).Extract()
+
+		if err == nil && volume.Status == "available" {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return "", errors.New("timeout waiting for volume to reach available status")
+		default:
+		}
+		time.Sleep(time.Second)
+	}
+
+	spec.BlockDevice = []servers.BlockDevice{
+		{
+			BootIndex: 0,
+			DeleteOnTermination: true,
+			DestinationType: servers.DestinationVolume,
+			SourceType: servers.SourceVolume,
+			UUID: volume.ID,
+		},
 	}
 
 	srv, err := servers.Create(ctx, g.computeClient, spec, hintOpts).Extract()
