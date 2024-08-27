@@ -36,6 +36,8 @@ type InstanceGroup struct {
 	UseIgnition      bool          `json:"use_ignition"`      // Configure keys via Ignition (Fedora CoreOS / Flatcar)
 	BootTimeS        string        `json:"boot_time"`         // optional: wait some time before report machine as available
 	BootTime         time.Duration
+	VolumeType       string        `json:"volume_type"`
+	VolumeSize       int           `json:"volume_size"`
 
 	computeClient   *gophercloud.ServiceClient
 	blockStorageClient *gophercloud.ServiceClient
@@ -290,8 +292,8 @@ func (g *InstanceGroup) createInstance(ctx context.Context) (string, error) {
 
 	volumeOpts := volumes.CreateOpts{
 		Name: spec.Name,
-		Size: 15,
-		VolumeType: "b1.sr-r3-nvme-1000",
+		Size: g.VolumeSize,
+		VolumeType: g.VolumeType,
 		ImageID: spec.ImageRef,
 	}
 	volume, err := volumes.Create(ctx, g.blockStorageClient, volumeOpts, nil).Extract()
