@@ -257,18 +257,9 @@ func (g *InstanceGroup) createInstance(ctx context.Context) (string, error) {
 			return "", err
 		}
 
-		for {
-			volume, err := g.client.GetVolume(ctx, volume.ID)
-
-			if err == nil && volume.Status == "available" {
-				break
-			}
-			select {
-			case <-ctx.Done():
-				return "", errors.New("timeout waiting for volume to reach available status")
-			default:
-			}
-			time.Sleep(time.Second)
+		err = g.client.WaitForStatus(ctx, volume.ID, "available")
+		if err != nil {
+			return "", err
 		}
 
 		spec.BlockDevice = []servers.BlockDevice{

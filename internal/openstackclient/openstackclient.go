@@ -84,6 +84,7 @@ type Client interface {
 	DeleteServer(ctx context.Context, serverId string) error
 	CreateVolume(ctx context.Context, opts volumes.CreateOpts) (*volumes.Volume, error)
 	GetVolume(ctx context.Context, volumeId string) (*volumes.Volume, error)
+	WaitForStatus(ctx context.Context, volumeId string, status string) error
 }
 
 type client struct {
@@ -331,4 +332,8 @@ func (c *client) CreateVolume(ctx context.Context, opts volumes.CreateOpts) (*vo
 
 func (c *client) GetVolume(ctx context.Context, volumeId string) (*volumes.Volume, error) {
 	return volumes.Get(ctx, c.blockStorage, volumeId).Extract()
+}
+
+func (c *client) WaitForStatus(ctx context.Context, volumeId string, status string) error {
+	return volumes.WaitForStatus(ctx, c.blockStorage, volumeId, status)
 }
