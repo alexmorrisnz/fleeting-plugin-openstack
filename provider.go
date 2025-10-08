@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v2/volumes"
 	"github.com/hashicorp/go-hclog"
 	"github.com/jinzhu/copier"
 	"github.com/sardinasystems/fleeting-plugin-openstack/internal/openstackclient"
@@ -29,6 +30,8 @@ type InstanceGroup struct {
 	UseIgnition      bool          `json:"use_ignition"`      // Configure keys via Ignition (Fedora CoreOS / Flatcar)
 	BootTimeS        string        `json:"boot_time"`         // optional: wait some time before report machine as available
 	BootTime         time.Duration
+	VolumeType       string        `json:"volume_type"`
+	VolumeSize       int           `json:"volume_size"`
 
 	client          openstackclient.Client
 	settings        provider.Settings
@@ -239,6 +242,43 @@ func (g *InstanceGroup) createInstance(ctx context.Context) (string, error) {
 		err := InsertSSHKeyIgn(spec, g.settings.Username, g.sshPubKey)
 		if err != nil {
 			return "", err
+		}
+	}
+
+	if g.VolumeSize != 0 && g.VolumeType != "" {
+		volumeOpts := volumes.CreateOpts{
+			Name: spec.Name,
+			Size: g.VolumeSize,
+			VolumeType: g.VolumeType,
+			ImageID: spec.ImageRef,
+		}
+		volume, err := g.client.CreateVolume(ctx, volumeOpts)
+		if err != nil {
+			return "", err
+		}
+
+		for {
+			volume, err := g.client.GetVolume(ctx, volume.ID)
+
+			if err == nil && volume.Status == "available" {
+				break
+			}
+			select {
+			case <-ctx.Done():
+				return "", errors.New("timeout waiting for volume to reach available status")
+			default:
+			}
+			time.Sleep(time.Second)
+		}
+
+		spec.BlockDevice = []servers.BlockDevice{
+			{
+				BootIndex: 0,
+				DeleteOnTermination: true,
+				DestinationType: servers.DestinationVolume,
+				SourceType: servers.SourceVolume,
+				UUID: volume.ID,
+			},
 		}
 	}
 
