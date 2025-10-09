@@ -257,7 +257,7 @@ func (g *InstanceGroup) createInstance(ctx context.Context) (string, error) {
 			return "", err
 		}
 
-		err = g.client.WaitForStatus(ctx, volume.ID, "available")
+		err = g.client.WaitForVolumeStatus(ctx, volume.ID, "available")
 		if err != nil {
 			return "", err
 		}
