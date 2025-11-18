@@ -10,8 +10,8 @@ import (
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack"
+	"github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v3/volumes"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
-	"github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v2/volumes"
 	"github.com/gophercloud/gophercloud/v2/openstack/config"
 	"github.com/gophercloud/gophercloud/v2/openstack/config/clouds"
 	"github.com/gophercloud/gophercloud/v2/openstack/image/v2/images"
@@ -88,8 +88,8 @@ type Client interface {
 }
 
 type client struct {
-	compute 	 *gophercloud.ServiceClient
-	image   	 *gophercloud.ServiceClient
+	compute      *gophercloud.ServiceClient
+	image        *gophercloud.ServiceClient
 	blockStorage *gophercloud.ServiceClient
 }
 
@@ -129,8 +129,8 @@ func New(ctx context.Context, authConfig AuthConfig, cloudOpts *CloudOpts) (Clie
 	}
 
 	return &client{
-		compute: computeClient,
-		image:   imageClient,
+		compute:      computeClient,
+		image:        imageClient,
 		blockStorage: blockStorageClient,
 	}, nil
 }
