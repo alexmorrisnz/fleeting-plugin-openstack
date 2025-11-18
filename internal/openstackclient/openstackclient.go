@@ -88,8 +88,8 @@ type Client interface {
 }
 
 type client struct {
-	compute 	 *gophercloud.ServiceClient
-	image   	 *gophercloud.ServiceClient
+	compute      *gophercloud.ServiceClient
+	image        *gophercloud.ServiceClient
 	blockStorage *gophercloud.ServiceClient
 }
 

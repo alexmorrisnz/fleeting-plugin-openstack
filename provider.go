@@ -30,8 +30,8 @@ type InstanceGroup struct {
 	UseIgnition      bool          `json:"use_ignition"`      // Configure keys via Ignition (Fedora CoreOS / Flatcar)
 	BootTimeS        string        `json:"boot_time"`         // optional: wait some time before report machine as available
 	BootTime         time.Duration
-	VolumeType       string 	   `json:"volume_type"`
-	VolumeSize       int    	   `json:"volume_size"`
+	VolumeType       string `json:"volume_type"`
+	VolumeSize       int    `json:"volume_size"`
 
 	client          openstackclient.Client
 	settings        provider.Settings
